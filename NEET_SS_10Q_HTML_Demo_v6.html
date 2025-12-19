@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NEET SS – 10Q Demo v6</title>
+<style>
+body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; }
+.container { max-width:720px; margin:auto; background:#fff; padding:20px; min-height:100vh;}
+h1 { text-align:center; font-size:20px; }
+.timer-bar { display:flex; justify-content:space-between; font-weight:bold; margin-bottom:15px; }
+.question { font-size:16px; margin-bottom:10px; }
+.options label { display:block; padding:10px; border:1px solid #ccc; border-radius:6px; margin-bottom:8px; }
+.correct { background:#d4edda; }
+.wrong { background:#f8d7da; }
+.nav { display:flex; justify-content:space-between; margin-top:20px; }
+button { padding:10px 18px; font-size:14px; }
+.hidden { display:none; }
+.scorebox { border:1px solid #333; padding:15px; margin-top:20px; }
+</style>
+
+<script>
+let current = 0;
+let totalTime = 600;
+let qTime = 60;
+let answers = {};
+let reviewMode = false;
+
+const marksPerCorrect = 4;
+const marksPerWrong = -1;
+const totalQuestions = 10;
+
+const correctAnswers = [1,2,3,2,2,2,1,1,2,2];
+
+const questions = [
+{q:"A patient with acute limb ischemia has sensory loss without motor deficit. Best management?",
+o:["Anticoagulation alone","CTA then thrombolysis","Urgent surgical revascularisation","Primary amputation"]},
+{q:"Rutherford IIb acute limb ischemia indicates:",
+o:["Viable limb","Marginal threat","Immediate threat","Irreversible ischemia"]},
+{q:"Critical limb ischemia is defined by all EXCEPT:",
+o:["Rest pain","Ulcer","Gangrene","Claudication only"]},
+{q:"Asymptomatic carotid stenosis requires CEA when stenosis is:",
+o:["≥50%","≥60%","≥70%","Any bruit"]},
+{q:"Most common EVAR complication is:",
+o:["MI","Renal failure","Endoleak","Infection"]},
+{q:"FAST positive and hemodynamically unstable patient requires:",
+o:["CT scan","IV fluids then CT","Immediate laparotomy","DPL"]},
+{q:"Trauma triad of death includes:",
+o:["Hypotension, acidosis, sepsis","Hypothermia, acidosis, coagulopathy","Shock, sepsis, hypoxia","Hypoxia, hypotension, acidosis"]},
+{q:"Post-op day 4 vomiting with bowel sounds present suggests:",
+o:["Ileus","Mechanical obstruction","Anastomotic leak","Intra-abdominal abscess"]},
+{q:"Best marker of adequate resuscitation is:",
+o:["Blood pressure","Urine output","Serum lactate","CVP"]},
+{q:"Best first-line vasopressor in septic shock:",
+o:["Dopamine","Epinephrine","Norepinephrine","Phenylephrine"]}
+];
+
+function loadQ(){
+ document.getElementById("qnum").innerText = "Question " + (current+1) + " / 10";
+ document.getElementById("qtext").innerText = questions[current].q;
+ let html = "";
+ questions[current].o.forEach((opt,i)=>{
+   let cls = "";
+   if(reviewMode){
+     if(i===correctAnswers[current]) cls="correct";
+     if(answers[current]==i && i!==correctAnswers[current]) cls="wrong";
+   }
+   html += `<label class="${cls}"><input type="radio" name="opt" value="${i}" ${answers[current]==i?"checked":""} ${reviewMode?"disabled":""}> ${opt}</label>`;
+ });
+ document.getElementById("opts").innerHTML = html;
+ document.getElementById("next").innerText = (current===9 && !reviewMode) ? "Submit" : "Next";
+}
+
+function nextQ(){
+ if(current===9 && !reviewMode){ submitExam(); return; }
+ save();
+ if(current<9){current++; qTime=60; loadQ();}
+}
+function prevQ(){ save(); if(current>0){current--; qTime=60; loadQ();} }
+function save(){
+ let sel=document.querySelector('input[name="opt"]:checked');
+ if(sel) answers[current]=parseInt(sel.value);
+}
+
+function tick(){
+ if(!reviewMode){
+  totalTime--; qTime--;
+  document.getElementById("totalt").innerText = "Total: " + totalTime + "s";
+  document.getElementById("qt").innerText = "Question: " + qTime + "s";
+  if(qTime<=0 && current<9){ current++; qTime=60; loadQ(); }
+  if(totalTime>0) setTimeout(tick,1000);
+ }
+}
+
+function submitExam(){
+ reviewMode=true;
+ document.getElementById("nav").classList.add("hidden");
+ document.getElementById("score").classList.remove("hidden");
+
+ let right=0, wrong=0, skipped=0;
+ for(let i=0;i<10;i++){
+   if(answers[i]===undefined){ skipped++; }
+   else if(answers[i]===correctAnswers[i]){ right++; }
+   else { wrong++; }
+ }
+
+ let rightPoints = right * marksPerCorrect;
+ let wrongPoints = wrong * Math.abs(marksPerWrong);
+ let totalScore = rightPoints - wrongPoints;
+ let maxScore = totalQuestions * marksPerCorrect;
+
+ let wrongPct = rightPoints > 0 ? ((wrongPoints / rightPoints) * 100).toFixed(1) : "0";
+
+ document.getElementById("scorebox").innerHTML =
+ `<b>Score Summary</b><br><br>
+ Correct: ${right} (${rightPoints} points – 100%)<br>
+ Wrong: ${wrong} (-${wrongPoints} points – ${wrongPct}%)<br>
+ Skipped: ${skipped} (0 points – 0%)<br><br>
+ <b>Total Score: ${totalScore} / ${maxScore}</b>`;
+}
+
+function reviewWrongs(){
+ current=0;
+ loadQ();
+ document.getElementById("score").classList.add("hidden");
+ document.getElementById("reviewNav").classList.remove("hidden");
+}
+
+window.onload=function(){loadQ(); tick();}
+</script>
+</head>
+
+<body>
+<div class="container">
+<h1>NEET SS – 10Q Demo (Corrected Percentage Logic)</h1>
+
+<div class="timer-bar">
+<span id="totalt"></span>
+<span id="qt"></span>
+</div>
+
+<div id="qnum"></div>
+<div class="question" id="qtext"></div>
+<div class="options" id="opts"></div>
+
+<div class="nav" id="nav">
+<button onclick="prevQ()">Previous</button>
+<button id="next" onclick="nextQ()">Next</button>
+</div>
+
+<div id="score" class="hidden">
+  <div class="scorebox" id="scorebox"></div>
+  <button onclick="reviewWrongs()">Review Answers</button>
+</div>
+
+<div class="nav hidden" id="reviewNav">
+<button onclick="prevQ()">Previous</button>
+<button onclick="nextQ()">Next</button>
+</div>
+
+</div>
+</body>
+</html>
